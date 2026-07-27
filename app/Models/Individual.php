@@ -4,9 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Laravel\Scout\Searchable;
 
 class Individual extends Model
 {
+    use Searchable;
+
     protected $fillable = [
         'prefix',
         'given_name',
@@ -23,6 +26,23 @@ class Individual extends Model
         'notes',
         'public_notes',
     ];
+
+    public function toSearchableArray(): array
+    {
+        return [
+            'id' => $this->id,
+            'given_name' => $this->given_name,
+            'surname' => $this->surname,
+            'prefix' => $this->prefix,
+            'suffix' => $this->suffix,
+            'sex' => $this->sex,
+            'colour' => $this->colour,
+            'birthplace' => $this->birthplace,
+            'country_nation' => $this->country_nation,
+            'estimated_birth_year' => $this->estimated_birth_year,
+            'death_year' => $this->death_year,
+        ];
+    }
 
     public function enslavedMatches(): HasMany
     {

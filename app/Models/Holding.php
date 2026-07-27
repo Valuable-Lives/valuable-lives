@@ -5,9 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Laravel\Scout\Searchable;
 
 class Holding extends Model
 {
+    use Searchable;
+
     protected $fillable = [
         'name',
         'parish_id',
@@ -22,6 +25,19 @@ class Holding extends Model
         'notes',
         'public_notes',
     ];
+
+    public function toSearchableArray(): array
+    {
+        return [
+            'id' => $this->id,
+            'name' => $this->name,
+            'parish_name' => $this->parish?->name,
+            'town_address' => $this->town_address,
+            'type' => $this->type,
+            'size_category' => $this->size_category,
+            'quality_flag' => $this->quality_flag,
+        ];
+    }
 
     public function parish(): BelongsTo
     {
