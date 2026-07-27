@@ -8,8 +8,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Individual extends Model
 {
     protected $fillable = [
+        'prefix',
         'given_name',
         'surname',
+        'suffix',
         'sex',
         'colour',
         'birthplace',
@@ -17,16 +19,19 @@ class Individual extends Model
         'estimated_birth_year',
         'death_year',
         'appearance',
+        'lbs_individual_id',
+        'notes',
+        'public_notes',
     ];
 
-    public function registerEntries(): HasMany
+    public function enslavedMatches(): HasMany
     {
-        return $this->hasMany(IndividualRegister::class);
+        return $this->hasMany(EnslavedMatch::class);
     }
 
-    public function lifeEvents(): HasMany
+    public function enslaverMatches(): HasMany
     {
-        return $this->hasMany(LifeEvent::class);
+        return $this->hasMany(EnslaverMatch::class);
     }
 
     public function relationshipsAsSubject(): HasMany

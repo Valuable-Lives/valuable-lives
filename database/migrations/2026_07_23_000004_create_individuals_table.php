@@ -10,19 +10,25 @@ return new class extends Migration
     {
         Schema::create('individuals', function (Blueprint $table) {
             $table->id();
+            $table->string('prefix')->nullable();
             $table->string('given_name')->nullable();
             $table->string('surname')->nullable();
-            $table->enum('sex', ['male', 'female'])->nullable();
+            $table->string('suffix')->nullable();
+            $table->enum('sex', ['male', 'female', 'unknown'])->nullable();
             $table->string('colour')->nullable();
             $table->enum('birthplace', ['african', 'creole'])->nullable();
             $table->string('country_nation')->nullable();
             $table->unsignedSmallInteger('estimated_birth_year')->nullable();
             $table->unsignedSmallInteger('death_year')->nullable();
             $table->text('appearance')->nullable();
+            $table->unsignedBigInteger('lbs_individual_id')->nullable();
+            $table->text('notes')->nullable();
+            $table->text('public_notes')->nullable();
             $table->timestamps();
 
             $table->index(['given_name', 'surname']);
             $table->index('birthplace');
+            $table->index('lbs_individual_id');
         });
     }
 

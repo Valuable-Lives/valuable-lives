@@ -18,6 +18,9 @@ class Holding extends Model
         'longitude',
         'lbs_estate_id',
         'quality_flag',
+        'description',
+        'notes',
+        'public_notes',
     ];
 
     public function parish(): BelongsTo
@@ -25,23 +28,13 @@ class Holding extends Model
         return $this->belongsTo(Parish::class);
     }
 
-    public function registerEntries(): HasMany
+    public function holdingMatches(): HasMany
     {
-        return $this->hasMany(HoldingRegister::class);
+        return $this->hasMany(HoldingMatch::class);
     }
 
-    public function individuals(): HasMany
+    public function holdingEstateLinks(): HasMany
     {
-        return $this->hasMany(IndividualRegister::class);
-    }
-
-    public function enslaverHoldings(): HasMany
-    {
-        return $this->hasMany(EnslaverHolding::class);
-    }
-
-    public function lifeEvents(): HasMany
-    {
-        return $this->hasMany(LifeEvent::class);
+        return $this->hasMany(HoldingEstateLink::class);
     }
 }

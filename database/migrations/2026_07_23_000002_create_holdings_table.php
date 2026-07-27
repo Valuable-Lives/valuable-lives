@@ -19,6 +19,9 @@ return new class extends Migration
             $table->decimal('longitude', 10, 7)->nullable();
             $table->unsignedBigInteger('lbs_estate_id')->nullable();
             $table->enum('quality_flag', ['okay', 'probs', 'bigprobs', 'gone'])->default('okay');
+            $table->text('description')->nullable();
+            $table->text('notes')->nullable();
+            $table->text('public_notes')->nullable();
             $table->timestamps();
 
             $table->index('parish_id');
