@@ -10,7 +10,9 @@ Commit messages must be a single sentence with NO attribution. No "Co-Authored-B
 - **Project board:** https://github.com/orgs/Valuable-Lives/projects/1
 - **SRS:** `../vl-project-docs/Valuable Lives SRS - July 2026.md`
 - **Data matcher (internal tool):** https://github.com/Valuable-Lives/vl-data-matcher (sibling project at `../lbs-explorer/`)
+- **Dev site:** https://valuable-lives-dev.on-forge.com/
 - **Forge server:** https://forge.laravel.com/james-alvarez/valuable-lives (server ID 1167795)
+- **SSH:** `ssh valuable-lives-dev@46.225.239.118`
 
 ## Development Environment
 
@@ -38,7 +40,12 @@ sail npm run dev
 
 Single MySQL database for all VL data. The LBS database will be read-only via a separate connection (not yet configured).
 
-Core entities: `individuals`, `individual_registers`, `holdings`, `holding_registers`, `enslavers`, `enslaver_holdings`, `life_events`, `relationships`, `relationship_types`, `parishes`, `glossary_terms`, `record_annotations`.
+Three layers of tables:
+
+- **Indexing tables** (raw Ancestry data): `entries`, `enslaved_records`, `enslaver_records`, `increase_decreases`, `inc_dec_enslavers`, `record_relationships`
+- **Match tables** (from data matcher): `enslaved_matches`, `enslaver_matches`, `holding_matches`, `holding_estate_links`, `entry_evolutions`
+- **Master entities** (curated): `individuals`, `holdings`, `parishes`, `relationships`, `relationship_types`
+- **CMS/content**: `glossary_terms`, `record_annotations`
 
 ## Fake Data
 
@@ -46,4 +53,4 @@ Core entities: `individuals`, `individual_registers`, `holdings`, `holding_regis
 sail artisan migrate:fresh --seed
 ```
 
-Generates ~1,100 individuals, ~50 holdings, ~90 enslavers, relationships, life events, glossary terms, and annotations using historically appropriate Jamaican register-period data.
+Generates ~940 individuals, ~50 holdings, ~3,600 enslaved records, ~440 enslaver records, matches, relationships, increase/decrease events, glossary terms, and annotations using historically appropriate Jamaican register-period data.
