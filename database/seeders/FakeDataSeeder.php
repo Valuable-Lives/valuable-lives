@@ -2,16 +2,22 @@
 
 namespace Database\Seeders;
 
-use App\Models\Enslaver;
-use App\Models\EnslaverHolding;
+use App\Models\EnslavedMatch;
+use App\Models\EnslavedRecord;
+use App\Models\EnslaverMatch;
+use App\Models\EnslaverRecord;
+use App\Models\Entry;
+use App\Models\EntryEvolution;
 use App\Models\GlossaryTerm;
 use App\Models\Holding;
-use App\Models\HoldingRegister;
+use App\Models\HoldingEstateLink;
+use App\Models\HoldingMatch;
+use App\Models\IncDecEnslaver;
+use App\Models\IncreaseDecrease;
 use App\Models\Individual;
-use App\Models\IndividualRegister;
-use App\Models\LifeEvent;
 use App\Models\Parish;
 use App\Models\RecordAnnotation;
+use App\Models\RecordRelationship;
 use App\Models\Relationship;
 use App\Models\RelationshipType;
 use Illuminate\Database\Seeder;
@@ -20,7 +26,6 @@ class FakeDataSeeder extends Seeder
 {
     private const REGISTER_YEARS = ['1817', '1820', '1823', '1826', '1829', '1832'];
 
-    // Real Jamaican parishes from the register period
     private const PARISHES = [
         'Port Royal', 'Kingston', 'St Andrew', 'St Thomas in the East',
         'Portland', 'St Mary', 'St Ann', 'Trelawny', 'St James',
@@ -29,7 +34,6 @@ class FakeDataSeeder extends Seeder
         'St Thomas in the Vale', 'Metcalfe',
     ];
 
-    // Period-appropriate given names for enslaved people
     private const GIVEN_NAMES_MALE = [
         'Adam', 'Abraham', 'Andrew', 'Benjamin', 'Caesar', 'Charles',
         'Cudjoe', 'Daniel', 'David', 'Edward', 'Francis', 'George',
@@ -38,7 +42,6 @@ class FakeDataSeeder extends Seeder
         'Peter', 'Prince', 'Quaco', 'Quashie', 'Robert', 'Sam',
         'Simon', 'Thomas', 'Tom', 'Will', 'William', 'York',
         'Primus', 'Scipio', 'Hector', 'Nero', 'Plato', 'Pompey',
-        'Cato', 'Fortune', 'Glasgow', 'Dublin', 'Bristol', 'London',
     ];
 
     private const GIVEN_NAMES_FEMALE = [
@@ -46,13 +49,11 @@ class FakeDataSeeder extends Seeder
         'Charlotte', 'Clarissa', 'Cuba', 'Diana', 'Dolly', 'Eleanor',
         'Elizabeth', 'Esther', 'Eve', 'Flora', 'Frances', 'Grace',
         'Hannah', 'Harriet', 'Jane', 'Jenny', 'Juba', 'Judy',
-        'Kitty', 'Letitia', 'Lucy', 'Maria', 'Martha', 'Mary',
-        'Mimba', 'Molly', 'Nancy', 'Phibba', 'Patience', 'Peggy',
-        'Quasheba', 'Rachel', 'Rebecca', 'Rose', 'Ruth', 'Sally',
-        'Sarah', 'Susannah', 'Venus', 'Violet', 'Dido', 'Minerva',
+        'Kitty', 'Lucy', 'Maria', 'Martha', 'Mary', 'Mimba',
+        'Molly', 'Nancy', 'Phibba', 'Patience', 'Peggy', 'Rachel',
+        'Rebecca', 'Rose', 'Ruth', 'Sally', 'Sarah', 'Susannah',
     ];
 
-    // Period-appropriate estate/holding names
     private const HOLDING_NAMES = [
         'Springfield', 'Mount Pleasant', 'Prospect', 'Hope',
         'Friendship', 'Content', 'Retreat', 'Rose Hall', 'Good Hope',
@@ -68,7 +69,6 @@ class FakeDataSeeder extends Seeder
         'Salt Savannah', 'Swanswick', 'Tryall', 'Whitehall',
     ];
 
-    // Period-appropriate enslaver surnames
     private const ENSLAVER_SURNAMES = [
         'Barrett', 'Beckford', 'Bryan', 'Campbell', 'Clarke',
         'Dawkins', 'Douglas', 'Edwards', 'Ellis', 'Foster',
@@ -88,8 +88,8 @@ class FakeDataSeeder extends Seeder
     ];
 
     private const CAPACITIES = [
-        'owner', 'executor', 'overseer', 'agent', 'attorney',
-        'mortgagee', 'trustee', 'guardian', 'receiver', 'administrator',
+        'Owner', 'Executor', 'Overseer', 'Agent', 'Attorney',
+        'Mortgagee', 'Trustee', 'Guardian', 'Receiver', 'Administrator',
     ];
 
     private const HOLDING_TYPES = ['plantation', 'pen', 'jobbing_gang', 'urban_household', 'other'];
@@ -97,10 +97,9 @@ class FakeDataSeeder extends Seeder
     private const COLOURS = ['Black', 'Brown', 'Mulatto', 'Sambo', 'Quadroon', 'Mustee'];
     private const AFRICAN_NATIONS = ['Ibo', 'Congo', 'Coromantee', 'Mandingo', 'Moco', 'Nago', 'Papaw', 'Chamba', 'Eboe'];
 
-    private const EVENT_TYPES = [
-        'birth', 'death', 'purchase', 'sale', 'manumission',
-        'runaway', 'transported', 'hired_out',
-        'moved_within_parish', 'moved_between_parishes',
+    private const INC_DEC_TYPES = [
+        'increase' => ['Born', 'Purchased', 'Received by bequest', 'Transferred in'],
+        'decrease' => ['Died', 'Sold', 'Manumitted', 'Run away', 'Transported', 'Executed'],
     ];
 
     private const GLOSSARY = [
@@ -116,6 +115,8 @@ class FakeDataSeeder extends Seeder
         ['Compensation', 'The £20 million paid by the British government to slave-owners (not the enslaved) following the 1833 Abolition Act. Records of these payments form the basis of the LBS database.', [], 'Historical'],
     ];
 
+    private int $ancestryId = 1000;
+
     public function run(): void
     {
         $this->command->info('Seeding parishes...');
@@ -127,20 +128,14 @@ class FakeDataSeeder extends Seeder
         $this->command->info('Seeding glossary terms...');
         $this->seedGlossary();
 
-        $this->command->info('Seeding holdings...');
-        $holdings = $this->seedHoldings($parishes);
+        $this->command->info('Seeding holdings and entries...');
+        $holdings = $this->seedHoldingsAndEntries($parishes);
 
-        $this->command->info('Seeding enslavers...');
-        $enslavers = $this->seedEnslavers($holdings);
-
-        $this->command->info('Seeding individuals...');
-        $individuals = $this->seedIndividuals($holdings);
-
-        $this->command->info('Seeding life events...');
-        $this->seedLifeEvents($individuals, $holdings);
+        $this->command->info('Seeding individuals, enslaved records, and matches...');
+        $individuals = $this->seedIndividualsAndRecords($holdings);
 
         $this->command->info('Seeding relationships...');
-        $this->seedRelationships($individuals, $holdings);
+        $this->seedRelationships($individuals);
 
         $this->command->info('Seeding record annotations...');
         $this->seedAnnotations($individuals, $holdings);
@@ -151,12 +146,17 @@ class FakeDataSeeder extends Seeder
             [
                 ['Parishes', Parish::count()],
                 ['Holdings', Holding::count()],
-                ['Holding registers', HoldingRegister::count()],
-                ['Enslavers', Enslaver::count()],
-                ['Enslaver-holding links', EnslaverHolding::count()],
+                ['Entries', Entry::count()],
+                ['Enslaved records', EnslavedRecord::count()],
+                ['Enslaver records', EnslaverRecord::count()],
+                ['Increase/decreases', IncreaseDecrease::count()],
+                ['Inc/dec enslavers', IncDecEnslaver::count()],
+                ['Record relationships', RecordRelationship::count()],
                 ['Individuals', Individual::count()],
-                ['Individual registers', IndividualRegister::count()],
-                ['Life events', LifeEvent::count()],
+                ['Enslaved matches', EnslavedMatch::count()],
+                ['Enslaver matches', EnslaverMatch::count()],
+                ['Holding matches', HoldingMatch::count()],
+                ['Holding-estate links', HoldingEstateLink::count()],
                 ['Relationships', Relationship::count()],
                 ['Glossary terms', GlossaryTerm::count()],
                 ['Annotations', RecordAnnotation::count()],
@@ -166,31 +166,17 @@ class FakeDataSeeder extends Seeder
 
     private function seedParishes(): array
     {
-        $parishes = [];
-        foreach (self::PARISHES as $name) {
-            $parishes[] = Parish::create(['name' => $name]);
-        }
-        return $parishes;
+        return array_map(fn ($name) => Parish::create(['name' => $name]), self::PARISHES);
     }
 
     private function seedRelationshipTypes(): void
     {
-        $types = [
-            ['Mother', 'Child'],
-            ['Father', 'Child'],
-            ['Sibling', 'Sibling'],
-            ['Grandmother', 'Grandchild'],
-            ['Grandfather', 'Grandchild'],
-            ['Aunt', 'Niece/Nephew'],
-            ['Uncle', 'Niece/Nephew'],
-            ['Spouse', 'Spouse'],
-        ];
-
-        foreach ($types as [$name, $inverse]) {
-            RelationshipType::create([
-                'name' => $name,
-                'inverse_name' => $inverse,
-            ]);
+        foreach ([
+            ['Mother', 'Child'], ['Father', 'Child'], ['Sibling', 'Sibling'],
+            ['Grandmother', 'Grandchild'], ['Grandfather', 'Grandchild'],
+            ['Aunt', 'Niece/Nephew'], ['Uncle', 'Niece/Nephew'], ['Spouse', 'Spouse'],
+        ] as [$name, $inverse]) {
+            RelationshipType::create(['name' => $name, 'inverse_name' => $inverse]);
         }
     }
 
@@ -206,33 +192,29 @@ class FakeDataSeeder extends Seeder
         }
     }
 
-    private function seedHoldings(array $parishes): array
+    private function seedHoldingsAndEntries(array $parishes): array
     {
         $holdings = [];
         $namePool = self::HOLDING_NAMES;
         shuffle($namePool);
 
-        // Create ~80 holdings spread across parishes
-        foreach ($namePool as $i => $name) {
-            if ($i >= 80) break;
-
+        foreach (array_slice($namePool, 0, 50) as $name) {
             $parish = $parishes[array_rand($parishes)];
-            $type = self::HOLDING_TYPES[array_rand(self::HOLDING_TYPES)];
             $sizeCategory = self::SIZE_CATEGORIES[array_rand(self::SIZE_CATEGORIES)];
 
             $holding = Holding::create([
                 'name' => $name,
                 'parish_id' => $parish->id,
-                'type' => $type,
+                'type' => self::HOLDING_TYPES[array_rand(self::HOLDING_TYPES)],
                 'size_category' => $sizeCategory,
                 'latitude' => 17.9 + (mt_rand(0, 1000) / 10000),
                 'longitude' => -76.8 + (mt_rand(0, 2000) / 10000),
                 'quality_flag' => $this->weightedRandom(['okay' => 70, 'probs' => 20, 'bigprobs' => 8, 'gone' => 2]),
             ]);
 
-            // Determine which register years this holding appears in
-            $startIdx = mt_rand(0, 2); // most holdings appear from early on
-            $endIdx = mt_rand(max($startIdx + 2, 4), 5); // most survive to the end
+            // Determine register year range
+            $startIdx = mt_rand(0, 2);
+            $endIdx = mt_rand(max($startIdx + 2, 4), 5);
             $years = array_slice(self::REGISTER_YEARS, $startIdx, $endIdx - $startIdx + 1);
 
             $basePopulation = match ($sizeCategory) {
@@ -242,226 +224,235 @@ class FakeDataSeeder extends Seeder
                 '100_plus' => mt_rand(100, 350),
             };
 
+            $entries = [];
             foreach ($years as $year) {
-                // Population drifts slightly each year
                 $total = max(1, $basePopulation + mt_rand(-10, 10));
                 $male = (int) round($total * (mt_rand(40, 55) / 100));
                 $female = $total - $male;
-                $african = (int) round($total * (mt_rand(10, 50) / 100));
-                $creole = $total - $african;
+                $tnaRef = 'T71/' . mt_rand(30, 300);
+                $tnaPage = mt_rand(1, 400);
 
-                HoldingRegister::create([
-                    'holding_id' => $holding->id,
+                $entry = Entry::create([
+                    'unique_identifier' => $this->ancestryId++,
+                    'original_order' => mt_rand(1, 500),
+                    'tna_ref' => $tnaRef,
+                    'registers_page_number' => $tnaPage,
                     'register_year' => $year,
-                    'enslaved_total' => $total,
-                    'enslaved_male' => $male,
-                    'enslaved_female' => $female,
-                    'enslaved_african' => $african,
-                    'enslaved_creole' => $creole,
-                    'tna_reference' => 'T71/' . mt_rand(30, 300),
-                    'tna_page' => mt_rand(1, 400),
+                    'parish_id' => $parish->id,
+                    'previous_total_males' => $year === $years[0] ? null : mt_rand(0, $male),
+                    'previous_total_females' => $year === $years[0] ? null : mt_rand(0, $female),
+                    'total_last_return' => $year === $years[0] ? null : max(0, $total + mt_rand(-5, 5)),
+                    'this_return_total_males' => $male,
+                    'this_return_total_females' => $female,
+                    'total_this_return' => $total,
+                    'number_increase' => mt_rand(0, 5),
+                    'number_decrease' => mt_rand(0, 5),
+                    'entry_text' => $this->randomEntryText($name),
+                    'estate_name' => $name,
                 ]);
 
+                // Link entry to holding via HoldingMatch
+                HoldingMatch::create([
+                    'entry_id' => $entry->id,
+                    'holding_id' => $holding->id,
+                    'match_rating' => mt_rand(80, 100),
+                    'match_type' => 'automatic',
+                    'match_date' => now(),
+                ]);
+
+                // Create enslaver records for this entry
+                $numEnslavers = mt_rand(1, 3);
+                for ($e = 0; $e < $numEnslavers; $e++) {
+                    $sex = mt_rand(0, 85) < 80 ? 'male' : 'female';
+                    $givenNames = $sex === 'male' ? self::ENSLAVER_GIVEN_NAMES : ['Ann', 'Elizabeth', 'Mary', 'Sarah', 'Jane', 'Catherine'];
+                    $givenName = $givenNames[array_rand($givenNames)];
+                    $surname = self::ENSLAVER_SURNAMES[array_rand(self::ENSLAVER_SURNAMES)];
+                    $capacity = self::CAPACITIES[array_rand(self::CAPACITIES)];
+
+                    EnslaverRecord::create([
+                        'unique_identifier' => $this->ancestryId++,
+                        'tna_ref' => $tnaRef,
+                        'registers_page_number' => $tnaPage,
+                        'register_year' => $year,
+                        'parish_id' => $parish->id,
+                        'entry_id' => $entry->id,
+                        'enslaver_name_full' => "$givenName $surname",
+                        'enslaver_given_name' => $givenName,
+                        'enslaver_surname' => $surname,
+                        'enslaver_gender' => $sex === 'male' ? 'Male' : 'Female',
+                        'enslaver_capacity' => $capacity,
+                        'enslaver_signed' => mt_rand(0, 1) === 1,
+                    ]);
+                }
+
+                $entries[] = ['model' => $entry, 'total' => $total, 'male' => $male, 'female' => $female];
                 $basePopulation = $total;
             }
 
-            $holdings[] = ['model' => $holding, 'years' => $years];
+            $holdings[] = [
+                'model' => $holding,
+                'parish' => $parish,
+                'years' => $years,
+                'entries' => $entries,
+            ];
         }
 
         return $holdings;
     }
 
-    private function seedEnslavers(array $holdings): array
-    {
-        $enslavers = [];
-
-        foreach ($holdings as $h) {
-            $holding = $h['model'];
-            $years = $h['years'];
-
-            // 1-3 enslavers per holding across its lifetime
-            $numEnslavers = mt_rand(1, 3);
-            for ($e = 0; $e < $numEnslavers; $e++) {
-                $sex = mt_rand(0, 85) < 80 ? 'male' : 'female';
-                $givenNames = $sex === 'male' ? self::ENSLAVER_GIVEN_NAMES : ['Ann', 'Elizabeth', 'Mary', 'Sarah', 'Jane', 'Catherine', 'Margaret', 'Frances'];
-
-                $enslaver = Enslaver::create([
-                    'prefix' => $sex === 'female' ? $this->weightedRandom(['Mrs' => 50, 'Miss' => 30, '' => 20]) : $this->weightedRandom(['' => 60, 'Mr' => 30, 'Hon.' => 5, 'Rev.' => 5]),
-                    'given_name' => $givenNames[array_rand($givenNames)],
-                    'surname' => self::ENSLAVER_SURNAMES[array_rand(self::ENSLAVER_SURNAMES)],
-                    'sex' => $sex,
-                    'colour' => mt_rand(0, 95) < 90 ? null : 'Brown',
-                    'status' => mt_rand(0, 95) < 90 ? 'Free' : 'Free person of colour',
-                ]);
-
-                // Assign to holding for a subset of years
-                $capacity = self::CAPACITIES[array_rand(self::CAPACITIES)];
-                $enslaverYears = ($e === 0) ? $years : array_slice($years, mt_rand(0, count($years) - 1));
-
-                foreach ($enslaverYears as $year) {
-                    EnslaverHolding::create([
-                        'enslaver_id' => $enslaver->id,
-                        'holding_id' => $holding->id,
-                        'capacity' => $capacity,
-                        'register_year' => $year,
-                    ]);
-                }
-
-                $enslavers[] = $enslaver;
-            }
-        }
-
-        return $enslavers;
-    }
-
-    private function seedIndividuals(array $holdings): array
+    private function seedIndividualsAndRecords(array $holdings): array
     {
         $individuals = [];
 
         foreach ($holdings as $h) {
             $holding = $h['model'];
+            $parish = $h['parish'];
             $years = $h['years'];
+            $entries = $h['entries'];
 
-            // Use the first year's population as a guide
-            $firstRegister = HoldingRegister::where('holding_id', $holding->id)
-                ->where('register_year', $years[0])
-                ->first();
-
-            $count = $firstRegister ? min($firstRegister->enslaved_total, 30) : mt_rand(3, 15);
+            $firstEntry = $entries[0];
+            $count = min($firstEntry['total'], 20);
 
             for ($i = 0; $i < $count; $i++) {
                 $sex = mt_rand(0, 1) === 0 ? 'male' : 'female';
                 $givenNames = $sex === 'male' ? self::GIVEN_NAMES_MALE : self::GIVEN_NAMES_FEMALE;
+                $givenName = $givenNames[array_rand($givenNames)];
+                $surname = mt_rand(0, 100) < 15 ? self::ENSLAVER_SURNAMES[array_rand(self::ENSLAVER_SURNAMES)] : null;
                 $birthplace = $this->weightedRandom(['creole' => 65, 'african' => 35]);
-
+                $colour = self::COLOURS[array_rand(self::COLOURS)];
                 $firstYearInt = (int) $years[0];
                 $estimatedBirthYear = $firstYearInt - mt_rand(1, 60);
+                $deathYear = mt_rand(0, 100) < 20 ? min($estimatedBirthYear + mt_rand(5, 70), 1838) : null;
 
+                // Create master individual
                 $individual = Individual::create([
-                    'given_name' => $givenNames[array_rand($givenNames)],
-                    'surname' => mt_rand(0, 100) < 15 ? self::ENSLAVER_SURNAMES[array_rand(self::ENSLAVER_SURNAMES)] : null,
+                    'given_name' => $givenName,
+                    'surname' => $surname,
                     'sex' => $sex,
-                    'colour' => self::COLOURS[array_rand(self::COLOURS)],
+                    'colour' => $colour,
                     'birthplace' => $birthplace,
                     'country_nation' => $birthplace === 'african' ? self::AFRICAN_NATIONS[array_rand(self::AFRICAN_NATIONS)] : null,
                     'estimated_birth_year' => $estimatedBirthYear,
-                    'death_year' => mt_rand(0, 100) < 20 ? min($estimatedBirthYear + mt_rand(5, 70), 1838) : null,
+                    'death_year' => $deathYear,
                     'appearance' => mt_rand(0, 100) < 10 ? $this->randomAppearance() : null,
                 ]);
 
-                // Place individual in registers; they might disappear partway through
-                $disappearIdx = ($individual->death_year && $individual->death_year <= (int) end($years))
-                    ? $this->yearIndex($individual->death_year)
-                    : count($years);
+                // Create enslaved records for each register year and match them
+                $disappearIdx = ($deathYear && $deathYear <= (int) end($years))
+                    ? $this->yearIndex($deathYear)
+                    : count($entries);
 
-                foreach ($years as $idx => $year) {
+                foreach ($entries as $idx => $entryData) {
                     if ($idx >= $disappearIdx) break;
 
+                    $year = $years[$idx];
                     $age = (int) $year - $estimatedBirthYear;
                     if ($age < 0) continue;
 
-                    IndividualRegister::create([
-                        'individual_id' => $individual->id,
+                    $fullName = $surname ? "$givenName $surname" : $givenName;
+                    $tnaRef = $entryData['model']->tna_ref;
+
+                    $enslavedRecord = EnslavedRecord::create([
+                        'unique_identifier' => $this->ancestryId++,
+                        'tna_ref' => $tnaRef,
+                        'registers_page_number' => $entryData['model']->registers_page_number,
                         'register_year' => $year,
-                        'age' => $age,
-                        'holding_id' => $holding->id,
+                        'parish_id' => $parish->id,
+                        'entry_id' => $entryData['model']->id,
+                        'enslaved_name_full' => $fullName,
+                        'enslaved_given_name' => $givenName,
+                        'enslaved_surname' => $surname,
+                        'birthplace' => $birthplace === 'african' ? 'African' : 'Creole',
+                        'gender' => $sex === 'male' ? 'Male' : 'Female',
+                        'colour' => $colour,
+                        'age_years' => $age,
+                        'occupation' => mt_rand(0, 100) < 8 ? $this->randomOccupation() : null,
                     ]);
+
+                    // Match to individual
+                    EnslavedMatch::create([
+                        'enslaved_record_id' => $enslavedRecord->id,
+                        'individual_id' => $individual->id,
+                        'match_rating' => mt_rand(85, 100),
+                        'match_type' => $this->weightedRandom(['automatic' => 60, 'checked' => 30, 'manual' => 10]),
+                        'match_date' => now(),
+                    ]);
+
+                    // Increase/decrease events (10% chance)
+                    if (mt_rand(0, 100) < 10) {
+                        $incDec = $this->weightedRandom(['increase' => 40, 'decrease' => 60]);
+                        $types = self::INC_DEC_TYPES[$incDec];
+                        $type = $types[array_rand($types)];
+
+                        $event = IncreaseDecrease::create([
+                            'enslaved_record_id' => $enslavedRecord->id,
+                            'increase_or_decrease' => $incDec,
+                            'full_text' => "$type since last return",
+                            'type' => $type,
+                            'year' => (int) $year,
+                        ]);
+
+                        // 50% chance of associated enslaver
+                        if (mt_rand(0, 1) === 1) {
+                            $eSurname = self::ENSLAVER_SURNAMES[array_rand(self::ENSLAVER_SURNAMES)];
+                            $eGiven = self::ENSLAVER_GIVEN_NAMES[array_rand(self::ENSLAVER_GIVEN_NAMES)];
+                            IncDecEnslaver::create([
+                                'increase_decrease_id' => $event->id,
+                                'enslaver_full_name' => "$eGiven $eSurname",
+                                'enslaver_given_name' => $eGiven,
+                                'enslaver_surname' => $eSurname,
+                            ]);
+                        }
+                    }
                 }
 
-                $individuals[] = ['model' => $individual, 'holding' => $holding, 'years' => $years];
+                $individuals[] = ['model' => $individual, 'holding_id' => $holding->id];
             }
+        }
+
+        // Create enslaver individuals and match them to enslaver records
+        $enslaverRecords = EnslaverRecord::inRandomOrder()->limit(50)->get();
+        foreach ($enslaverRecords as $record) {
+            $individual = Individual::create([
+                'prefix' => mt_rand(0, 1) ? 'Mr' : null,
+                'given_name' => $record->enslaver_given_name,
+                'surname' => $record->enslaver_surname,
+                'sex' => strtolower($record->enslaver_gender ?? 'unknown'),
+            ]);
+
+            EnslaverMatch::create([
+                'enslaver_record_id' => $record->id,
+                'individual_id' => $individual->id,
+                'match_rating' => mt_rand(80, 100),
+                'match_type' => 'automatic',
+                'match_date' => now(),
+            ]);
         }
 
         return $individuals;
     }
 
-    private function seedLifeEvents(array $individuals, array $holdings): void
-    {
-        foreach ($individuals as $ind) {
-            $individual = $ind['model'];
-            $holding = $ind['holding'];
-            $years = $ind['years'];
-
-            // Birth event
-            if ($individual->estimated_birth_year >= 1817) {
-                $birthYear = $this->closestRegisterYear($individual->estimated_birth_year);
-                if ($birthYear && in_array($birthYear, $years)) {
-                    LifeEvent::create([
-                        'individual_id' => $individual->id,
-                        'holding_id' => $holding->id,
-                        'event_type' => 'birth',
-                        'register_year' => $birthYear,
-                    ]);
-                }
-            }
-
-            // Death event
-            if ($individual->death_year) {
-                $deathYear = $this->closestRegisterYear($individual->death_year);
-                if ($deathYear && in_array($deathYear, $years)) {
-                    LifeEvent::create([
-                        'individual_id' => $individual->id,
-                        'holding_id' => $holding->id,
-                        'event_type' => 'death',
-                        'register_year' => $deathYear,
-                    ]);
-                }
-            }
-
-            // Random events (5% chance per individual)
-            if (mt_rand(0, 100) < 5) {
-                $eventType = $this->weightedRandom([
-                    'runaway' => 25, 'manumission' => 20, 'sale' => 20,
-                    'purchase' => 15, 'hired_out' => 10, 'moved_within_parish' => 10,
-                ]);
-                $year = $years[array_rand($years)];
-
-                $destHolding = null;
-                if (in_array($eventType, ['sale', 'purchase', 'moved_within_parish', 'moved_between_parishes'])) {
-                    $randomHolding = $holdings[array_rand($holdings)];
-                    $destHolding = $randomHolding['model']->id;
-                }
-
-                LifeEvent::create([
-                    'individual_id' => $individual->id,
-                    'holding_id' => $holding->id,
-                    'event_type' => $eventType,
-                    'register_year' => $year,
-                    'origin_destination_holding_id' => $destHolding,
-                ]);
-            }
-        }
-    }
-
-    private function seedRelationships(array $individuals, array $holdings): void
+    private function seedRelationships(array $individuals): void
     {
         $motherType = RelationshipType::where('name', 'Mother')->first();
         $siblingType = RelationshipType::where('name', 'Sibling')->first();
-
         if (!$motherType || !$siblingType) return;
 
-        // Group individuals by holding
+        // Group by holding
         $byHolding = [];
         foreach ($individuals as $ind) {
-            $holdingId = $ind['holding']->id;
-            $byHolding[$holdingId][] = $ind['model'];
+            $byHolding[$ind['holding_id']][] = $ind['model'];
         }
 
         foreach ($byHolding as $group) {
-            $females = array_filter($group, fn ($i) => $i->sex === 'female' && ($i->estimated_birth_year ?? 1800) < 1810);
-            $children = array_filter($group, fn ($i) => ($i->estimated_birth_year ?? 1800) >= 1810);
-
-            $females = array_values($females);
-            $children = array_values($children);
+            $females = array_values(array_filter($group, fn ($i) => $i->sex === 'female' && ($i->estimated_birth_year ?? 1800) < 1810));
+            $children = array_values(array_filter($group, fn ($i) => ($i->estimated_birth_year ?? 1800) >= 1810));
 
             if (empty($females) || empty($children)) continue;
 
-            // Assign children to mothers
             $motherChildren = [];
             foreach ($children as $child) {
                 $mother = $females[array_rand($females)];
-
-                // Check age plausibility (mother at least 14 years older)
                 $ageDiff = ($child->estimated_birth_year ?? 1820) - ($mother->estimated_birth_year ?? 1790);
                 if ($ageDiff < 14) continue;
 
@@ -473,10 +464,24 @@ class FakeDataSeeder extends Seeder
                     'confidence' => 'confirmed',
                 ]);
 
+                // Also create a raw record relationship
+                $motherRecords = EnslavedMatch::where('individual_id', $mother->id)->pluck('enslaved_record_id');
+                $childRecords = EnslavedMatch::where('individual_id', $child->id)->pluck('enslaved_record_id');
+                if ($motherRecords->isNotEmpty() && $childRecords->isNotEmpty()) {
+                    RecordRelationship::create([
+                        'enslaved_record_id' => $childRecords->first(),
+                        'relation_record_id' => $motherRecords->first(),
+                        'relationship_full_text' => "Child of {$mother->given_name}",
+                        'relation_to' => 'Child',
+                        'relation_from' => 'Mother',
+                        'relation_given_name' => $mother->given_name,
+                        'relation_surname' => $mother->surname,
+                    ]);
+                }
+
                 $motherChildren[$mother->id][] = $child;
             }
 
-            // Infer sibling relationships
             foreach ($motherChildren as $siblings) {
                 for ($i = 0; $i < count($siblings) - 1; $i++) {
                     for ($j = $i + 1; $j < count($siblings); $j++) {
@@ -495,9 +500,7 @@ class FakeDataSeeder extends Seeder
 
     private function seedAnnotations(array $individuals, array $holdings): void
     {
-        // Add a few sample annotations
-        $sampleIndividuals = array_slice($individuals, 0, 3);
-        foreach ($sampleIndividuals as $ind) {
+        foreach (array_slice($individuals, 0, 3) as $ind) {
             RecordAnnotation::create([
                 'annotatable_type' => Individual::class,
                 'annotatable_id' => $ind['model']->id,
@@ -506,8 +509,7 @@ class FakeDataSeeder extends Seeder
             ]);
         }
 
-        $sampleHoldings = array_slice($holdings, 0, 2);
-        foreach ($sampleHoldings as $h) {
+        foreach (array_slice($holdings, 0, 2) as $h) {
             RecordAnnotation::create([
                 'annotatable_type' => Holding::class,
                 'annotatable_id' => $h['model']->id,
@@ -526,25 +528,9 @@ class FakeDataSeeder extends Seeder
         $cumulative = 0;
         foreach ($weights as $value => $weight) {
             $cumulative += $weight;
-            if ($roll <= $cumulative) {
-                return (string) $value;
-            }
+            if ($roll <= $cumulative) return (string) $value;
         }
         return (string) array_key_first($weights);
-    }
-
-    private function closestRegisterYear(int $year): ?string
-    {
-        $closest = null;
-        $minDiff = PHP_INT_MAX;
-        foreach (self::REGISTER_YEARS as $ry) {
-            $diff = abs((int) $ry - $year);
-            if ($diff < $minDiff) {
-                $minDiff = $diff;
-                $closest = $ry;
-            }
-        }
-        return $closest;
     }
 
     private function yearIndex(int $year): int
@@ -557,17 +543,21 @@ class FakeDataSeeder extends Seeder
 
     private function randomAppearance(): string
     {
-        $descriptions = [
-            'Tall, country marks on both cheeks',
-            'Short stature, scar on left arm',
-            'Medium height, filed teeth',
-            'Tall, strong build',
-            'Small, mark on right shoulder',
-            'Country marks on forehead',
-            'Lame in right leg',
-            'Blind in one eye',
-            'Branded on right breast',
-        ];
-        return $descriptions[array_rand($descriptions)];
+        $d = ['Tall, country marks on both cheeks', 'Short stature, scar on left arm', 'Medium height, filed teeth', 'Tall, strong build', 'Country marks on forehead', 'Lame in right leg', 'Blind in one eye'];
+        return $d[array_rand($d)];
+    }
+
+    private function randomOccupation(): string
+    {
+        $o = ['Field labourer', 'Domestic', 'Driver', 'Cooper', 'Carpenter', 'Mason', 'Boiler', 'Watchman', 'Cook', 'Washerwoman', 'Seamstress', 'Stock keeper', 'Carter'];
+        return $o[array_rand($o)];
+    }
+
+    private function randomEntryText(string $estateName): string
+    {
+        $surname = self::ENSLAVER_SURNAMES[array_rand(self::ENSLAVER_SURNAMES)];
+        $given = self::ENSLAVER_GIVEN_NAMES[array_rand(self::ENSLAVER_GIVEN_NAMES)];
+        $capacity = self::CAPACITIES[array_rand(self::CAPACITIES)];
+        return "A Return of Slaves belonging to $estateName in the possession of $given $surname as $capacity";
     }
 }
