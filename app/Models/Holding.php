@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Laravel\Scout\Searchable;
 
 class Holding extends Model
@@ -52,5 +53,10 @@ class Holding extends Model
     public function holdingEstateLinks(): HasMany
     {
         return $this->hasMany(HoldingEstateLink::class);
+    }
+
+    public function annotations(): MorphMany
+    {
+        return $this->morphMany(RecordAnnotation::class, 'annotatable');
     }
 }
